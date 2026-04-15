@@ -1,314 +1,152 @@
-# lem-in - Ant Farm Simulator
+# lem-in 🐜
 
-## 📖 Overview
+A Go program that finds the optimal way to move **N ants** through a colony
+of rooms and tunnels, from `##start` to `##end` in the fewest possible turns.
 
-lem-in is a Go program that simulates moving ants through a colony (graph of rooms connected by tunnels) from a start room to an end room. The goal is to find the quickest path(s) and display the movement of ants turn by turn, following specific rules:
+---
 
-- One ant per room (except start and end rooms)
-- One ant per tunnel per turn
-- Ants can only move forward through tunnels
-- Find the optimal combination of paths to minimize total turns
-
-## 🎯 Learning Objectives
-
-By building this project, you will learn:
-
-- **Graph Algorithms**: BFS, pathfinding, multiple path optimization
-- **Data Structures**: Adjacency lists, queues, graph representation
-- **Parsing**: Reading and validating structured input
-- **Simulation**: Turn-based movement with constraints
-- **Test-Driven Development**: Writing tests before implementation
-- **Error Handling**: Graceful failure with meaningful messages
-
-## 📋 Requirements
-
-- **Language**: Go (only standard packages allowed)
-- **Input**: Text file describing ant colony
-- **Output**: Original file content + ant movements in specified format
-- **Team Size**: 1-4 members
-
-## 🚀 Getting Started
-
-### Prerequisites
+## Quick Start
 
 ```bash
-# Install Go (if not already installed)
-# https://golang.org/dl/
+# Build
+go build -o lem-in .
 
-# Verify installation
-go version
+# Run with an example
+./lem-in examples/example00.txt
+
+# Or with go run
+go run . examples/example00.txt
+
+# Run tests
+go test ./tests/ -v
 ```
 
-### Initial Setup
+---
 
-```bash
-# Create project directory
-mkdir lem-in
-cd lem-in
+## How It Works
 
-# Initialize go module
-go mod init lem-in
+1. **Parse** the input file — read ant count, rooms, and tunnels
+2. **Find paths** using max-flow (Edmonds-Karp on a node-split graph)
+3. **Select** the optimal subset of paths for the ant count
+4. **Simulate** movement — ants move in staggered "trains" along their paths
+5. **Output** the original file content followed by turn-by-turn moves
 
-# Create basic structure
-mkdir -p parser graph pathfinder simulator tests/testdata
-```
+### Why Max Flow?
 
-## 📁 Project Structure
+Each room can hold only one ant at a time. Using multiple parallel,
+non-overlapping paths lets more ants move simultaneously. Max flow finds
+the maximum number of such vertex-disjoint paths — and the node-split trick
+turns the room-capacity constraint into a standard edge-capacity problem.
 
-```
-lem-in/
-├── main.go                 # Entry point
-├── parser/                 # Input parsing
-│   ├── parser.go
-│   └── parser_test.go
-├── graph/                  # Graph representation
-│   ├── graph.go
-│   └── graph_test.go
-├── pathfinder/            # Path finding algorithms
-│   ├── pathfinder.go
-│   ├── multi_path.go
-│   └── pathfinder_test.go
-├── simulator/             # Ant movement simulation
-│   ├── simulator.go
-│   └── simulator_test.go
-├── tests/                 # Integration tests
-│   ├── integration_test.go
-│   └── testdata/          # Test input files
-│       ├── valid/
-│       └── invalid/
-├── go.mod
-└── README.md
-```
+See `learning/03_maxflow.md` for a full explanation.
 
-## 🎮 Input Format
+---
+
+## Input Format
 
 ```
 <number_of_ants>
 ##start
-<room_name> <x_coord> <y_coord>
-<room_name> <x_coord> <y_coord>
-...
+<room_name> <x> <y>
+[more rooms...]
 ##end
-<room_name> <x_coord> <y_coord>
-<room_name>-<room_name>  # tunnels
-<room_name>-<room_name>
+<room_name> <x> <y>
+[links as name1-name2]
 ```
 
-### Example Input
-```txt
-3
-##start
-start 1 6
-middle 4 8
-##end
-end 9 5
-start-middle
-middle-end
-```
-
-### Rules for Valid Input
-- Room names: no spaces, don't start with `L` or `#`
-- Coordinates: integers
-- No duplicate rooms or tunnels
-- All tunnels must connect existing rooms
-- Must have exactly one `##start` and one `##end`
-- Comments start with `#` (except `##start`/`##end`)
-
-## 📤 Output Format
-
-The program outputs:
-1. The entire input file content
-2. A blank line
-3. Turn-by-turn ant movements
-
-```
-L<ant>-<room> L<ant>-<room> ...  # Turn 1
-L<ant>-<room> L<ant>-<room> ...  # Turn 2
-...
-```
-
-## 🧪 Development Approach (MVP by MVP)
-
-Follow this step-by-step approach, building and testing each component before moving to the next:
-
-### MVP 1: Input Parsing ✅
-- [ ] Read file from command line argument
-- [ ] Parse number of ants (validate integer > 0)
-- [ ] Parse rooms (name, x, y) with `##start`/`##end` markers
-- [ ] Parse tunnels (room1-room2)
-- [ ] Basic error handling (invalid format)
-- [ ] **Test**: Valid and invalid input files
-
-### MVP 2: Graph Building ✅
-- [ ] Create graph structure (adjacency list)
-- [ ] Add bidirectional tunnels
-- [ ] Validate no duplicate tunnels
-- [ ] Validate all tunnels reference existing rooms
-- [ ] **Test**: Graph construction, duplicate detection
-
-### MVP 3: Single Path Finding ✅
-- [ ] Implement BFS for shortest path
-- [ ] Return path as slice of room names
-- [ ] Handle case with no path
-- [ ] **Test**: Various graph topologies, disconnected graphs
-
-### MVP 4: Multiple Paths ✅
-- [ ] Find all possible paths (DFS with backtracking)
-- [ ] Find node-disjoint paths
-- [ ] Calculate optimal path combination for given ants
-- [ ] **Test**: Path combinations, disjointness verification
-
-### MVP 5: Ant Simulation ✅
-- [ ] Create Ant struct with ID, path, position
-- [ ] Simulate turn-by-turn movement
-- [ ] Enforce room capacity (1 ant per room)
-- [ ] Enforce tunnel usage (1 ant per tunnel per turn)
-- [ ] Output moves in correct format
-- [ ] **Test**: Movement logic, capacity rules
-
-### MVP 6: Complete Integration ✅
-- [ ] Wire all components together
-- [ ] Add comprehensive error messages
-- [ ] Optimize for performance (1000+ ants)
-- [ ] Final testing with provided examples
-- [ ] **Test**: Full program execution
-
-## 🧪 Testing Strategy
-
-### Unit Tests (per package)
-```bash
-# Run all unit tests
-go test ./... -v
-
-# Run specific package tests
-go test ./parser/... -v
-go test ./graph/... -v
-```
-
-### Integration Tests
-```bash
-# Create test files in tests/testdata/
-go test ./tests/... -v
-```
-
-### Example Test Cases
-Create test files for:
-- ✅ Basic linear path: `start -> A -> B -> end`
-- ✅ Multiple paths: `start -> A -> end`, `start -> B -> end`
-- ✅ Complex graph with cycles
-- ❌ No path between start and end
-- ❌ Invalid number of ants (negative, zero, text)
-- ❌ Missing start or end room
-- ❌ Duplicate rooms or tunnels
-- ❌ Tunnel to non-existent room
-
-## 📊 Provided Examples
-
-The project includes example files (from the subject). Your program should produce the exact output shown:
-
-- `example00.txt` - Basic example (6 turns for 4 ants)
-- `example01.txt` - More complex (8 turns for 10 ants)
-- `example02.txt` - Multiple paths (11 turns for 20 ants)
-- `example03.txt` - Graph with choices (6 turns for 4 ants)
-- `example04.txt` - Another topology (6 turns for 9 ants)
-- `example05.txt` - Complex (8 turns for 9 ants)
-- `badexample00.txt` - Invalid input
-- `badexample01.txt` - Invalid input
-
-## 🎯 Performance Requirements
-
-- Handle 100 ants in example06: < 1.5 minutes
-- Handle 1000 ants in example07: < 2.5 minutes
-
-## 🏆 Bonus Features
-
-- [ ] **Visualizer**: Show ants moving through colony graphically
-  ```bash
-  ./lem-in ant-farm.txt | ./visualizer
-  ```
-- [ ] **3D Visualizer**: Enhanced visualization
-- [ ] **Detailed Errors**: Specific error messages
-  ```
-  ERROR: invalid data format, invalid number of Ants
-  ERROR: invalid data format, no start room found
-  ```
-
-## 💡 Tips & Best Practices
-
-1. **Start Simple**: Get single path working before multiple paths
-2. **Test Early**: Write tests for each function as you build
-3. **Validate Everything**: Don't trust input data
-4. **Use Structs**: Group related data (Room, Ant, Farm)
-5. **Comment Complex Logic**: Especially pathfinding algorithms
-6. **Profile Performance**: Use `go test -bench` for optimization
-7. **Read Examples First**: Understand expected output format
-
-## 🐛 Common Pitfalls
-
-- ❌ Forgetting that tunnels are bidirectional
-- ❌ Allowing ants to share rooms (except start/end)
-- ❌ Allowing multiple ants in same tunnel per turn
-- ❌ Not handling comments correctly
-- ❌ Ignoring empty lines in input
-- ❌ Not validating all rooms exist before adding tunnels
-
-## 📚 Resources
-
-### Go Documentation
-- [File I/O](https://gobyexample.com/reading-files)
-- [String Manipulation](https://gobyexample.com/string-functions)
-- [Structs and Methods](https://gobyexample.com/structs)
-
-### Algorithms
-- [BFS Explanation](https://en.wikipedia.org/wiki/Breadth-first_search)
-- [Multiple Pathfinding](https://en.wikipedia.org/wiki/Suurballe%27s_algorithm)
-
-### Project-Specific
-- [Original lem-in (42 project)](https://github.com/01-edu/public/tree/master/subjects/lem-in)
-
-## 🔄 Development Workflow
-
-```bash
-# 1. Create a branch for your feature
-git checkout -b mvp1-parsing
-
-# 2. Write tests first (TDD)
-# Edit parser/parser_test.go
-
-# 3. Implement the feature
-# Edit parser/parser.go
-
-# 4. Run tests
-go test ./parser/... -v
-
-# 5. Commit working code
-git add .
-git commit -m "MVP1: Complete input parsing"
-
-# 6. Merge and move to next MVP
-git checkout main
-git merge mvp1-parsing
-```
-
-## ✅ Definition of Done
-
-Your project is complete when:
-- [ ] All MVP requirements implemented
-- [ ] All tests pass (unit + integration)
-- [ ] Program handles all error cases gracefully
-- [ ] Output matches example outputs exactly
-- [ ] Performance meets requirements
-- [ ] Code follows Go best practices (gofmt, golint)
-- [ ] Code is well-commented and readable
-- [ ] Bonus features implemented (optional)
-
-## 🤝 Working in a Group
-
-- Use Git branches for parallel development
-- Review each other's code before merging
-- Divide MVPs among team members
-- Regular standups to coordinate
+- Lines starting with `#` are comments (ignored), except `##start` and `##end`
+- Room names cannot start with `L` or `#`
+- Coordinates must be integers
+- Each tunnel connects exactly two rooms
 
 ---
 
-**Good luck! Start with MVP 1 (parsing) and work your way up. Test everything as you go!** 🐜🏠
+## Output Format
+
+```
+<original file content>
+
+L1-roomA L2-roomB
+L1-roomC L2-roomA L3-roomB
+...
+```
+
+Each line is one turn. `Lx-y` means ant number x moved to room y.
+
+---
+
+## Examples
+
+```
+examples/
+├── example00.txt    4 ants, single path         → ≤6 turns
+├── example01.txt    10 ants, 3 paths             → ≤8 turns
+├── example02.txt    20 ants, 2 paths             → ≤11 turns
+├── example03.txt    4 ants, 2 paths              → ≤6 turns
+├── example04.txt    9 ants, named rooms          → ≤6 turns
+├── example05.txt    9 ants, complex network      → ≤8 turns
+├── badexample00.txt no ##start                   → ERROR
+├── badexample01.txt 0 ants                       → ERROR
+└── badexample02.txt no path exists              → ERROR
+```
+
+---
+
+## Project Structure
+
+```
+lem-in/
+├── main.go              Entry point
+├── go.mod               Go module definition
+├── colony/
+│   └── colony.go        Core data structures (Room, Colony)
+├── parser/
+│   └── parser.go        Input file reading and validation
+├── solver/
+│   └── solver.go        Max-flow path finding + ant simulation
+├── tests/
+│   ├── parser_test.go   Parser unit tests
+│   └── solver_test.go   Solver unit tests
+├── examples/            Sample input files
+└── learning/            Step-by-step concept guides
+    ├── 01_graphs.md     What is a graph?
+    ├── 02_bfs.md        Breadth-First Search
+    ├── 03_maxflow.md    Max flow & the node-split trick
+    ├── 04_parsing.md    Parsing techniques in Go
+    ├── 05_simulation.md Simulating ant movement
+    └── 06_go_practices.md  Go patterns and best practices
+```
+
+---
+
+## Error Messages
+
+| Error | Cause |
+|-------|-------|
+| `ERROR: invalid data format, invalid number of ants` | Ant count ≤ 0 or not a number |
+| `ERROR: invalid data format, no start room found` | Missing `##start` |
+| `ERROR: invalid data format, no end room found` | Missing `##end` |
+| `ERROR: invalid data format, duplicate room: X` | Room name used twice |
+| `ERROR: invalid data format, duplicate link: X-Y` | Same tunnel defined twice |
+| `ERROR: invalid data format, link references unknown room: X` | Link to non-existent room |
+| `ERROR: invalid data format, no path between start and end` | Graph is disconnected |
+
+---
+
+## Learning Resources
+
+New to the concepts? Start with the `learning/` folder:
+
+1. **`01_graphs.md`** — nodes, edges, adjacency lists
+2. **`02_bfs.md`** — how BFS finds shortest paths
+3. **`03_maxflow.md`** — the key algorithm behind this project
+4. **`04_parsing.md`** — reading and validating text files in Go
+5. **`05_simulation.md`** — the turn-by-turn movement model
+6. **`06_go_practices.md`** — Go idioms and best practices
+
+---
+
+## Only Standard Library
+
+This project uses only Go's standard library (`bufio`, `fmt`, `os`,
+`strconv`, `strings`) — no external packages.
